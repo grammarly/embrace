@@ -101,6 +101,10 @@ const App: React.FC = () => UI.mount(NewMain, newMainFlow)
 ReactDOM.render(<App />, document.getElementById('root'))
 ```
 
+## Project Status
+
+Embrace is an experimental prototype. Breaking changes may occur up to 1.0.0 is released.
+
 ## WHY?
 
 With the applications growing with features and code-base, more and more developers are looking for ways to re-use the code between them.
