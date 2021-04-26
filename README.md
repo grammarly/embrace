@@ -1,6 +1,6 @@
 # Embrace
 
-Typesafe, declarative, and composable UI engine on top of [React](https://reactjs.org/).
+Typesafe, declarative, and composable UI engine on top of [React](https://reactjs.org/) and [Focal](https://github.com/grammarly/focal).
 
 - Detect breaking changes in components with the static type system.
 - Clear separation between UI and the logic.
@@ -25,7 +25,7 @@ import { Flow, UI } from '@grammarly/embrace'
  *   <Body>
  * </Grid>
  */
-const mainGrid = UI.Grid.make<'header' | 'body', never, never>(({ slots }) => (
+const mainGrid = UI.Grid.make<'header' | 'body'>(({ slots }) => (
   <div className="main">
     {slots.header}
     {slots.body}
@@ -41,7 +41,7 @@ const Body = UI.Node.make<{ readonly content: string }, never>(({ state }) => (
 export const bodyFlow: Flow.For<typeof Body> = Rx.startWith({ content: 'Hello, World!' })
 
 // Header component. Neither consumes state or emits events
-const Header = UI.Node.make<never, never>(() => <header className="header">Welcome</header>)
+const Header = UI.Node.make(() => <header className="header">Welcome</header>)
 
 // Produce a component by composing `mainGrid` with `Header` and `Body`
 export const Main = UI.Knot.make(mainGrid, { header: Header, body: Body })
@@ -100,6 +100,10 @@ const App: React.FC = () => UI.mount(NewMain, newMainFlow)
 
 ReactDOM.render(<App />, document.getElementById('root'))
 ```
+
+## Project Status
+
+Embrace is an experimental prototype. Breaking changes may occur up to 1.0.0 is released.
 
 ## WHY?
 
