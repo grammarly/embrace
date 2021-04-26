@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "jsx": "preserve",
+    "lib": ["es6", "es2015", "dom", "scripthost"],
+    "module": "es2020",
+    "target": "es2015",
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "strict": true,
+    "strictFunctionTypes": false,
+    "allowSyntheticDefaultImports": false,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowUnreachableCode": false,
+    "noEmitOnError": true,
+    "skipLibCheck": true
+  }
+}

@@ -1,0 +1,10 @@
+.idea
+*.log
+*.lock
+/cjs
+/esm
+/esm2015
+/node_modules
+/example/node_modules
+/example/build
+tsconfig.build.tsbuildinfo

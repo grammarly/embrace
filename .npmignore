@@ -1,0 +1,14 @@
+/example
+/img
+/node_modules
+/src
+/tests
+.eslintrc.js
+.gitignore
+.prettierrc
+CONTRIBUTING.md
+jest.config.js
+README.md
+tsconfig.build.json
+tsconfig.build.tsbuildinfo
+tsconfig.json

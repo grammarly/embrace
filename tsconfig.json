@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "jsx": "react",
+    "lib": ["es6", "es2017", "dom", "scripthost"],
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "strict": true,
+    "strictFunctionTypes": false,
+    "allowSyntheticDefaultImports": false,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowUnreachableCode": false,
+    "noEmitOnError": true,
+    "skipLibCheck": true,
+    "composite": true,
+    "incremental": true
+  }
+}

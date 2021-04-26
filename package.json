@@ -1,0 +1,72 @@
+{
+  "name": "@grammarly/embrace",
+  "version": "0.1.0",
+  "description": "Typesafe, declarative, and composable UI engine on top of React",
+  "main": "cjs/index.js",
+  "module": "esm/index.js",
+  "es2015": "esm2015/index.js",
+  "types": "esm2015/index.d.ts",
+  "files": [
+    "cjs",
+    "esm",
+    "esm2015"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/grammarly/embrace.git"
+  },
+  "author": "Grammarly, Inc.",
+  "license": "Apache-2.0",
+  "scripts": {
+    "dev": "tsc -p tsconfig.build.json --module es2015 --target es5 --outDir esm2015 -w",
+    "build": "yarn build:cjs && yarn build:esm && yarn build:esm2015",
+    "build:cjs": "tsc -p tsconfig.build.json --module commonjs --target es5 --outDir cjs",
+    "build:esm": "tsc -p tsconfig.build.json --module es2015 --target es5 --outDir esm",
+    "build:esm2015": "tsc -p tsconfig.build.json --module es2015 --target es2015 --outDir esm2015",
+    "lint": "eslint './**/*.ts?(x)'",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@grammarly/focal": "0.8.5",
+    "fp-ts": "2.9.5",
+    "ts-toolbelt": "6.9.9"
+  },
+  "peerDependencies": {
+    "react": ">= 16.11.0 < 17.0.0-0",
+    "rxjs": ">= 6.3.3 < 7.0.0-0"
+  },
+  "devDependencies": {
+    "@grammarly/tslint-config": "0.6.0",
+    "@types/enzyme": "3.1.15",
+    "@types/enzyme-adapter-react-16": "1.0.3",
+    "@typescript-eslint/eslint-plugin": "4.8.1",
+    "@typescript-eslint/eslint-plugin-tslint": "4.8.1",
+    "@typescript-eslint/parser": "4.8.1",
+    "@types/jest": "26.0.20",
+    "@types/react": "16.8.2",
+    "enzyme": "3.8.0",
+    "enzyme-adapter-react-16": "1.7.1",
+    "enzyme-to-json": "3.3.3",
+    "eslint": "^7.19.0",
+    "eslint-config-prettier": "6.7.0",
+    "eslint-import-resolver-typescript": "1.1.1",
+    "eslint-nibble": "5.1.0",
+    "eslint-plugin-fp-ts": "0.2.1",
+    "eslint-plugin-functional": "3.2.1",
+    "eslint-plugin-import": "^2.19.1",
+    "eslint-plugin-import-helpers": "1.0.2",
+    "eslint-plugin-jest": "24.1.3",
+    "eslint-plugin-react-hooks": "4.2.0",
+    "eslint-plugin-sonarjs": "^0.5.0",
+    "eslint-plugin-todo-plz": "1.1.0",
+    "jest": "26.6.3",
+    "react": "16.11.0",
+    "react-dom": "16.11.0",
+    "rxjs": "6.5.3",
+    "ts-jest": "26.4.4",
+    "tslib": "1.11.1",
+    "tslint": "5.18.0",
+    "tslint-sonarts": "^1.9.0",
+    "typescript": "4.1.2"
+  }
+}
