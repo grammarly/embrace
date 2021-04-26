@@ -1,7 +1,7 @@
 {
   "name": "@grammarly/embrace",
   "version": "0.1.0",
-  "description": "Typesafe, declarative, and composable UI engine on top of React",
+  "description": "Typesafe, declarative, and composable UI engine on top of React and Focal",
   "main": "cjs/index.js",
   "module": "esm/index.js",
   "es2015": "esm2015/index.js",
