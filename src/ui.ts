@@ -312,9 +312,7 @@ export namespace UI {
       State,
       Action,
       Slots extends PropertyKey,
-      Children extends {
-        readonly [K in Slots]: UIAny
-      }
+      Children extends Record<Slots, UIAny>
     >(
       grid: UI.Grid<State, Action, Slots>,
       children: Exact<Slots, Children>
@@ -482,7 +480,11 @@ export namespace UI {
             s.state,
             Rx.map(
               flow(
-                O.map(name => (inTransition as any)[name] || (outTransition as any)[name]),
+                O.map(name =>
+                  Boolean((inTransition as any)[name])
+                    ? (inTransition as any)[name]
+                    : (outTransition as any)[name]
+                ),
                 O.toUndefined
               )
             ),
@@ -821,7 +823,7 @@ export namespace UI {
                 children: null as never,
                 notify: props.notify,
                 // state will be undefined in cases when children has state equal to never
-                state: props.state || EMPTY
+                state: props.state ?? EMPTY
               })
           }
         )
@@ -835,11 +837,11 @@ export namespace UI {
     } else if (isKnot(uiNode)) {
       return props =>
         pipe(
-          props.state,
+          props.state as Observable<any>,
           fromFoldable(Record.record),
           Rx.map(data => {
             const children = pipe(
-              uiNode.children as Record<string, UIAny>,
+              uiNode.children,
               Record.mapWithIndex((key, part) =>
                 // Here squash will be called only once, during first state emit, so it does not make sense to cache it
                 makeNamespacedNode(
@@ -847,7 +849,7 @@ export namespace UI {
                   squash(part)
                 )({
                   children: null as never,
-                  notify: props.notify,
+                  notify: props.notify as (i: KeyedAction<any, any>) => void,
                   // state will be undefined in cases when children has state equal to never
                   state: data.get(key) || EMPTY
                 })
@@ -857,7 +859,7 @@ export namespace UI {
             return uiNode.grid({
               children,
               // state will be undefined in cases when grid has state equal to never
-              state: data.get(ROOT) || EMPTY,
+              state: (data.get(ROOT) || EMPTY) as Observable<never>,
               notify: action => props.notify({ key: ROOT, action } as ComposedAction<Node>)
             })
           }),
@@ -866,9 +868,9 @@ export namespace UI {
     } else if (isList(uiNode)) {
       return props =>
         pipe(
-          props.state,
+          props.state as Observable<ComposedState<UIAny>>,
           fromFoldable(uiNode.foldable),
-          Rx.scan((cache, data: Map<string, Observable<any>>) => {
+          Rx.scan((cache, data) => {
             const children = new Map<string, ReactElement>()
             data.forEach((state, key) => {
               const cached = cache.get(key)
@@ -876,8 +878,15 @@ export namespace UI {
                 children.set(key, cached)
               } else {
                 // TODO: Should we add a cache for that squash???
-                const kc = makeNamespacedNode(key, squash(uiNode.of))
-                children.set(key, kc({ children: null as never, notify: props.notify, state }))
+                const keyedComponent = makeNamespacedNode(key, squash(uiNode.of))
+                children.set(
+                  key,
+                  keyedComponent({
+                    children: null as never,
+                    notify: props.notify as (i: KeyedAction<string | number, any>) => void,
+                    state
+                  })
+                )
               }
             })
 
@@ -893,7 +902,7 @@ export namespace UI {
     } else if (isUnion(uiNode)) {
       return props =>
         pipe(
-          props.state,
+          props.state as Observable<{ readonly [key: string]: any }>,
           splitBy(uiNode.tag),
           Rx.map(state =>
             // TODO: Should we add a cache for that squash???
@@ -902,7 +911,7 @@ export namespace UI {
               squash(uiNode.members[state.key])
             )({
               children: null as never,
-              notify: props.notify,
+              notify: props.notify as (i: KeyedAction<string | number, any>) => void,
               state
             })
           ),
@@ -919,7 +928,7 @@ export namespace UI {
    *
    * see examples in {@link mapAction} & {@link contramapState}.
    */
-  export function promap<Node extends UIAnyWithOwnSA, State, Action>(
+  export function promap<Node extends UIAny, State, Action>(
     uiNode: Node,
     contramapState: (v: State) => Decompose<Node>[0],
     mapAction: (v: Decompose<Node>[1]) => Action
@@ -974,9 +983,11 @@ export namespace UI {
    * >
    * ```
    */
-  export type ComposedState<Node extends UIAny> = Node extends unknown
-    ? _ComposedState<Node> // hide type complexity to make it more readable in usage places
-    : never
+  export type ComposedState<Node extends UIAny> = UIAny extends Node
+    ? // hide type complexity to make it more readable in usage places
+      // TODO: return unknown for infinite type UIAny
+      any
+    : _ComposedState<Node>
 
   /**
    * @returns computed Actions of provided UI parts composition.
@@ -1007,12 +1018,15 @@ export namespace UI {
    * }
    * ```
    */
-  export type ComposedAction<Node extends UIAny> = Node extends unknown
-    ? _ComposedAction<Node> // hide type complexity to make it more readable in usage places
-    : never
+  export type ComposedAction<Node extends UIAny> = UIAny extends Node
+    ? // hide type complexity to make it more readable in usage places
+      // TODO: return unknown for infinite type UIAny
+      any
+    : _ComposedAction<Node>
 }
 
 interface ReactElement extends React.ReactElement<any, any> {}
+
 interface UIPart<State, Action, Slots>
   extends R.Reader<
     MountProps<State, Action, Slots extends PropertyKey ? Slots : never>,
@@ -1053,41 +1067,41 @@ function makeNamespacedNode<K extends string | number, Node extends UINodeAny>(
   )
 }
 
-function changeDescendant<RootNode extends UIAny, P extends string[], NewNode extends UIAny>(
-  parent: RootNode,
+function changeDescendant<Node extends UIAny, P extends string[], NewNode extends UIAny>(
+  parent: Node,
   path: P,
-  f: (current: FocusDescendant<RootNode, P>) => NewNode
-): ChangeDescendant<RootNode, P, NewNode> {
+  f: (current: FocusDescendant<Node, P>) => NewNode
+): ChangeDescendant<Node, P, NewNode> {
   if (isComposite(parent) && path.length > 0) {
     return {
       grid: parent.grid,
-      child: changeDescendant(parent.child, path, f)
-    } as ChangeDescendant<RootNode, P, NewNode>
+      child: changeDescendant(parent.child as Node, path, f)
+    } as ChangeDescendant<Node, P, NewNode>
   } else if (isKnot(parent) && path.length > 0) {
     const [head, ...tail] = path
     return {
       grid: parent.grid,
       children: {
         ...parent.children,
-        [head]: changeDescendant(parent.children[head], tail as P, f)
+        [head]: changeDescendant(parent.children[head] as Node, tail as P, f)
       }
-    } as ChangeDescendant<RootNode, P, NewNode>
+    } as ChangeDescendant<Node, P, NewNode>
   } else if (isList(parent) && path.length > 0) {
     return {
       foldable: parent.foldable,
-      of: changeDescendant(parent.of, path, f)
-    } as ChangeDescendant<RootNode, P, NewNode>
+      of: changeDescendant(parent.of as Node, path, f)
+    } as ChangeDescendant<Node, P, NewNode>
   } else if (isUnion(parent) && path.length > 0) {
     const [head, ...tail] = path
     return {
       tag: parent.tag,
       members: {
         ...parent.members,
-        [head]: changeDescendant(parent.members[head], tail as P, f)
+        [head]: changeDescendant(parent.members[head] as Node, tail as P, f)
       }
-    } as ChangeDescendant<RootNode, P, NewNode>
+    } as ChangeDescendant<Node, P, NewNode>
   } else {
-    return f(parent as any) as ChangeDescendant<RootNode, P, NewNode>
+    return f(parent as any) as ChangeDescendant<Node, P, NewNode>
   }
 }
 

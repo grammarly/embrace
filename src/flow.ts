@@ -1,13 +1,18 @@
+import { Kind, URIS } from 'fp-ts/lib/HKT'
 import { IO } from 'fp-ts/lib/IO'
+
 import * as O from 'fp-ts/lib/Option'
 import * as R from 'fp-ts/lib/Reader'
 import * as Record from 'fp-ts/lib/Record'
 import * as T from 'fp-ts/lib/These'
-import { flow, pipe } from 'fp-ts/lib/function'
+import { TraversableWithIndex1 } from 'fp-ts/lib/TraversableWithIndex'
+import { flow, identity, pipe } from 'fp-ts/lib/function'
 import { combineLatest, EMPTY, merge, NEVER, Observable, of } from 'rxjs'
 import * as Rx from 'rxjs/operators'
-import { UIAny } from './internal'
+import { UIAny, UIListAny } from './internal'
 import { AnimationActions, AnimationState } from './internal/animated'
+import * as Obs from './internal/observable'
+import { prioritize } from './internal/rx_prioritize'
 import { IsNever } from './internal/utils'
 import { UI } from './ui'
 
@@ -218,19 +223,142 @@ export namespace Flow {
   ) {
     return R.asks(actions =>
       pipe(
-        kindSelector(actions),
-        Rx.switchMap(keyRecord => {
-          const [[tag, key]] = Object.entries(keyRecord) as [UnionTag<Node>, UnionKeys<Node>][]
-          return pipe(
-            actions,
-            Rx.filter(a => a.key === key),
-            Rx.map(a => a.action),
-            flowComposition[key],
-            Rx.map(state => ({ ...state, [tag]: key }))
+        actions,
+        // we mirror the `actions` observable into `actionsPrioritized` and `actionsDeprioritized` observables
+        // with the guarantee that they are subscribed in order. This is necessary to deliver actions to
+        // the item flows before they are delivered to `kindSelector`, which is important when an
+        // action triggers a kind update and causes `switchMap` to unsubscribe
+        // from the item flow before the item flow gets a chance to handle the action.
+        prioritize((actionsPrioritized, actionsDeprioritized) =>
+          pipe(
+            kindSelector(actionsDeprioritized),
+            Rx.switchMap(keyRecord => {
+              const [[tag, key]] = Object.entries(keyRecord) as [UnionTag<Node>, UnionKeys<Node>][]
+              return pipe(
+                actionsPrioritized,
+                Rx.filter(a => a.key === key),
+                Rx.map(a => a.action),
+                flowComposition[key],
+                Rx.map(state => ({ ...state, [tag]: key }))
+              )
+            })
           )
-        })
+        )
       )
     ) as Flow.For<Node>
+  }
+
+  type SomeFlow<Node extends UIAny> = Node extends UI.Union.Option<infer Some>
+    ? Flow.For<Some>
+    : never
+
+  type OptionKindSelector<Node extends UIAny> = Node extends UI.Union.Option<infer Some>
+    ? R.Reader<Observable<UI.ComposedAction<Some>>, Observable<UnionTagValuesRecord<Node>>>
+    : never
+
+  /**
+   * Create a Flow for composition of the components (@see UI.Union.Node) from its value flow.
+   *
+   * example:
+   * ```ts
+   * declare const comp: UI.Node<{ text: string; }
+   * declare const compFlow: Flow.For<typeof comp>
+   * declare const kindSelector: (actions: Observable<UI.ComposedAction<typeof comp>>) => Observable<{_tag: 'Some' | 'Node'}>
+   *
+   * const optionFlow = Flow.composeOption(compFlow, kindSelector)
+   * ```
+   */
+  export function composeOption<Node extends UI.Union.Option<UIAny>>(
+    flow: SomeFlow<Node>,
+    kindSelector: OptionKindSelector<Node>
+  ): Flow.For<Node> {
+    return composeUnion<Node>(
+      ({
+        None: () => of(null as never),
+        Some: Flow.composeKnot<Node['members']['Some']>({
+          value: flow
+        } as KnotFlowComposition<Node['members']['Some']>)
+      } as unknown) as UnionFlowComposition<Node>,
+      R.asks(actions =>
+        pipe(
+          actions,
+          Rx.filter(a => a.key === 'Some'),
+          Rx.map(a => a.action.action),
+          kindSelector
+        )
+      ) as UnionKindSelector<Node>
+    )
+  }
+
+  type ListItemFlowProvider<List extends UIListAny, T> = List extends UI.List<any, any, infer Item>
+    ? (data: T) => Flow<UI.ComposedAction<Item>, UI.ComposedState<Item>>
+    : never
+
+  type ListCollectionProvider<List extends UIListAny, T> = List extends UI.List<infer F, any, UIAny>
+    ? F extends URIS
+      ? R.Reader<Observable<UI.ComposedAction<List>>, Observable<Kind<F, T>>>
+      : never
+    : never
+
+  type ListTraversableState<List extends UIListAny> = List extends UI.List<infer F, infer I, UIAny>
+    ? F extends URIS
+      ? TraversableWithIndex1<F, I>
+      : never
+    : never
+
+  /**
+   * Create a Flow for composition of the components (@see UI.List) from its children flow.
+   *
+   * example:
+   * ```ts
+   * import * as A from 'fp-ts/lib/Array'
+   *
+   * declare const item: UI.Node<{ text: 'string' }, 'click'>
+   * type FlowInput = string
+   * declare const createItemFlow: (data: FlowInput) => Flow.For<typeof item>
+   * declare const list = UI.List.make(A.array, item)
+   * declare const collectionProvider: (actions: Observable<UI.ComposedAction<typeof list>>) => Observable<FlowInput[]>
+   *
+   * const listFlow = Flow.composeList<typeof list, FlowInput>(A.array, collectionProvider, createItemFlow)
+   * ```
+   */
+  export function composeList<List extends UIListAny, T = unknown>(
+    // A traversable instance for the state collection
+    F: ListTraversableState<List>,
+    // Given a stream of actions, we return a stream that provides the Foldable structure of the state.
+    // Leaf values and keys are passed to the `itemFlowProvider` during traversal to get the final state.
+    collectionProvider: ListCollectionProvider<List, T>,
+    // Given a cell key and data, return a flow for that cell
+    itemFlowProvider: ListItemFlowProvider<List, T>
+  ): Flow.For<List> {
+    return R.asks(actions =>
+      pipe(
+        actions,
+        // we mirror the `actions` observable into `actionsPrioritized` and `actionsDeprioritized` observables
+        // with the guarantee that they are subscribed in order. This is necessary to deliver actions to
+        // the item flows before they are delivered to `collectionProvider`, which is important when an
+        // action triggers a collection update via `collectionProvider` and causes `switchMap` to unsubscribe
+        // from the item flow, not giving the item flow a chance to handle the action.
+        prioritize((actionsPrioritized, actionsDeprioritized) =>
+          pipe(
+            collectionProvider(actionsDeprioritized),
+            Rx.switchMap(collection =>
+              // Traverse the collection, transform each cell into a flow by feeding `itemFlowProvider` with the cell data.
+              // Then combine the resulting state using a combineLatest strategy to get the final list state.
+              F.traverseWithIndex(Obs.ApplicativeCombine)(collection, (key, data) =>
+                itemFlowProvider(data as T)(
+                  pipe(
+                    actionsPrioritized,
+                    Rx.filter(a => a.key === key),
+                    Rx.map(a => a.action)
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    ) as Flow.For<List>
   }
 
   export type AnimationDecisionFor<Tree extends UIAny> = Tree extends UI.Animated<
@@ -306,13 +434,13 @@ export namespace Flow {
         O.fromNullable(init[prevKey]),
         O.chain(av => av.root),
         O.map(getEventsByKey<Type>(animation, prevKey)),
-        O.getOrElse(() => EMPTY),
+        O.fold(() => EMPTY, identity),
         Rx.mapTo(Record.deleteAt(prevKey))
       )
       const nextTransitionEvents = pipe(
         init[nextKey].root,
         O.map(getEventsByKey<Type>(animation, nextKey)),
-        O.getOrElse(() => EMPTY),
+        O.fold(() => EMPTY, identity),
         Rx.mapTo((state: AnimationState<Type, State>) => {
           const nextState = { ...state }
           nextState[nextKey] = { ...nextState[nextKey], root: O.none }

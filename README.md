@@ -20,7 +20,7 @@ import { Flow, UI } from '@grammarly/embrace'
 /**
  * Page layout that defines slots for header and body components.
  * Should be composed with `Header` and `Body` upon mount (see `UI.Knot.make` below)
- * <Gird>
+ * <Grid>
  *   <Header>
  *   <Body>
  * </Grid>
@@ -40,7 +40,7 @@ const Body = UI.Node.make<{ readonly content: string }, never>(({ state }) => (
 // Flow with an initial value of the `Body` state
 export const bodyFlow: Flow.For<typeof Body> = Rx.startWith({ content: 'Hello, World!' })
 
-// Header component. Neither consumes state or emits events
+// Header component. Neither consumes state nor emits events
 const Header = UI.Node.make(() => <header className="header">Welcome</header>)
 
 // Produce a component by composing `mainGrid` with `Header` and `Body`
@@ -69,7 +69,7 @@ import { F } from '@grammarly/focal'
 import { Flow, UI } from '@grammarly/embrace'
 import { bodyFlow, Main } from './'
 
-// A different version of the `Header` component. Consume state, can emit `onClick` event
+// A different version of the `Header` component. Consumes state, can emit `onClick` event
 const CustomHeader = UI.Node.make<{ readonly user: string }, 'onClick'>(({ state, notify }) => (
   <header className="header">
     <F.span>{state.pipe(Rx.map(({ user }) => `Hello, ${user}`))}</F.span>
@@ -77,7 +77,7 @@ const CustomHeader = UI.Node.make<{ readonly user: string }, 'onClick'>(({ state
   </header>
 ))
 
-// `CustomHeader` logic (Flow). Contains initial value and the actions handler
+// `CustomHeader` logic (Flow). Contains actions handler and initial value
 const customHeaderFlow: Flow.For<typeof CustomHeader> = flow(
   Rx.map(() => ({ user: 'username' })),
   Rx.startWith({ user: 'anonymous' })
@@ -103,15 +103,15 @@ ReactDOM.render(<App />, document.getElementById('root'))
 
 ## Project Status
 
-Embrace is an experimental prototype. Breaking changes may occur up to 1.0.0 is released.
+Embrace is an experimental prototype. Breaking changes may occur up to 1.0.0 release.
 
 ## WHY?
 
-With the applications growing with features and code-base, more and more developers are looking for ways to re-use the code between them.
+With applications growing with features and code-base, more and more developers are looking for ways to re-use the code between them.
 The popular solution is to extract shared code to the components library.
 While this approach does solve the scaling problem, it also adds challenges:
 
-- **It is hard to customize existing shared components**: components tend to stick with the design of the original app in which they were originally created. As a result, it is very hard to customize and re-use them in other apps. In most cases, customization requires a partial or total redesign of the component.
+- **It is hard to customize existing shared components**: components tend to stick with the design of the original app in which they were initially created. As a result, it is very hard to customize and re-use them in other apps. In most cases, customization requires a partial or total component redesign.
 - **No easy way to detect breaking changes**: each React component could potentially have an unlimited amount of state management logic that is not visible through its props types. Heavy usage of such React APIs as `context` only makes things worse. As a result, a change to a platform component could break some of its (many) clients, especially if a client had customized a library's component behavior.
 - **Adding new experiments increases the complexity of the UI code**: every running experiment adds one or more branches into an already complex UI logic. As the number of experiments grows, the complexity increases in a non-linear way.
 
@@ -119,9 +119,9 @@ While this approach does solve the scaling problem, it also adds challenges:
 
 Main ideas behind Embrace:
 
-- **Use static typing to manage breaking changes**: it should not be possible to change the component behavior without changing its type. I.e., both the state component uses and actions it can trigger must be part of its strongly-typed interface. Furthermore, using a new version of the library's component with breaking change should result in a compilation error.
+- **Use static typing to manage breaking changes**: it should not be possible to change the component behavior without changing its type. I.e., both the state component uses and actions it can trigger must be part of its strongly-typed interface. Furthermore, using a new version of the library's component with a breaking change should result in a compilation error.
 - **Enforce UI components not to have state management logic**: there should be a clear separation of UI and App State logic. UI components should only be allowed to trigger strongly-typed actions, i.e., an "intent" that must be handled by some other state management module. Not having such clear separation makes it hard to re-use components, as different apps usually have different means to manage their state.
-- **Allow centralized UI customizations**: it should be possible to collocate all UI changes (driven by an experiment or library-using app customization) in one place. I.e., the complexity of a UI code should grow linearly (or logarithmic in the worst-case scenario) with the number of customizations.
+- **Allow centralized UI customizations**: it should be possible to collocate all UI changes (driven by an experiment or library-using app customization) in one place. I.e., the complexity of a UI code should grow linearly (or logarithmically in the worst-case scenario) with the number of customizations.
 - **Minimize time spent on experiments cleanup**: centralized UI customization means that it should be possible to enumerate all active experiments or other UI customizations. Therefore, removing an experiment should be as easy as deleting an item from the list.
 - **Minimize time spent on code reviews**: with all the constraints above, the new UI building approach should minimize the number of possible ways to implement a new feature, making it easier to accept changes from contributors.
 
@@ -131,12 +131,12 @@ The Embrace library should implement all of the requirements above. The idea beh
 
 ![embrace flow](img/embrace_flow.jpg)
 
-UI Tree accepts state changes as they happen, triggering re-render of corresponding React components, and emits actions as they are triggered (by the user or some other UI event).
+UI Tree accepts state changes as they happen, triggering re-render of corresponding React components, and emits actions as they are triggered by the user or some other UI event.
 As a result, we get a "classic" UI cycle where data flows one way (from "machine" to "UI"), and actions flow the opposite way. The innovation is in the implementation:
 
 - it forces immutability and type safety on the UI Tree
 - it makes the UI Tree representation truly declarative (see `Patching UI Tree` section below)
-- it does not rely on React's VDOM and instead triggers a re-render of affected components using [wormholes pattern](https://static1.squarespace.com/static/53e04d59e4b0c0da377d20b1/t/53e5a285e4b0cc1fd4cab024/1407558277521/Winograd-Cort-Wormholes.pdf) implemented using RxJS observables and Focal React.
+- it does not rely on React's VDOM and instead triggers a re-render of affected components using [wormholes pattern](https://www.danwc.com/data/Winograd-Cort-Wormholes.pdf) implemented using RxJS observables and Focal React.
 
 As of now, Embrace _does not_ dictate how the state management part is implemented. It only provides a set of useful types and helper functions to compose a larger UI Tree from smaller parts in a type-safe way:
 
@@ -157,7 +157,7 @@ interface UIPart<State, Action, Slots> {
 }
 ```
 
-UIPart accepts an Observable of `State`, notifies of new `Actions` and can also have `Slot`s, which is a placeholder for another UIPart.
+UIPart accepts an Observable of `State`, notifies of new `Actions` and can also have `Slot`s, which are placeholders for another UIPart.
 
 UIPart cannot modify app's state directly (e.g., by having a reference to a view model or some other shared state), it can only trigger an `Action`, which may (or may not) result in a new `State` passed to UIPart.
 
@@ -240,7 +240,7 @@ const element = UI.mount(
 
 ### Composing UI Parts together
 
-Embrace uses raw UIPart to build few higher-level abstractions to help build the UI Tree (in fact, UIPart is currently not exported from Embrace, which means you will not use UIPart but instead primitives described below).
+Embrace uses raw UIPart to build a few higher-level abstractions to help build the UI Tree (in fact, UIPart is currently not exported from Embrace, which means you will not use UIPart but instead primitives described below).
 
 - **Node**: the most basic part of UI. Renders UI according to passed State and emits Actions as side-effects from interactions with UI. Node cannot have slots:
   ```ts
@@ -250,7 +250,7 @@ Embrace uses raw UIPart to build few higher-level abstractions to help build the
   ```ts
   interface Grid<State, Action, Slots> extends UIPart<State, Action, Slots> {}
   ```
-- **Knot**: a composition of a `Grid` with other `UIParts`, can be used to fill a `Grid`'s Slots with specific UIParts
+- **Knot**: a composition of a `Grid` with other `UIParts`, can be used to fill `Grid`'s Slots with specific UIParts
   ```ts
   interface Knot<State, Action, Children extends Record<string, UIAny>> {
     readonly grid: UI.Grid<State, Action, keyof Children>
@@ -300,7 +300,7 @@ const appGrid = UI.Grid.make<'header' | 'body'>(({ slots }) => (
 ))
 
 // Header is a Grid that has nav slot
-const header = UI.Grid.make<'nav'>(({ slots }) => (
+const headerGrid = UI.Grid.make<'nav'>(({ slots }) => (
   <F.div>
     'Welcome'
     {slots.nav}
@@ -316,7 +316,7 @@ const buttonNav = UI.Node.make<never, 'navClick'>(({ notify }) => (
 const body = UI.Node.make<string, never>(({ state }) => <F.div>{state}</F.div>)
 
 // header with a nav button
-const header = UI.Knot.make(header, { nav: buttonNav })
+const header = UI.Knot.make(headerGrid, { nav: buttonNav })
 
 // default app users header with a button nav and a string body
 const app = UI.Knot.make(appGrid, {
@@ -477,7 +477,7 @@ const NewApp = pipe(
 
 // It is not possible to mutate a part of the actions stream, instead we will create a new one from the smaller parts
 const flow: Flow.For<typeof NewApp> = Flow.composeKnot<typeof NewApp>({
-  // footer and root part did not changed, re-use their flow
+  // footer and root part did not change, re-use their flow
   root: ContentFlow,
   footer: FooterFlow,
   // re-implement header flow
@@ -517,7 +517,7 @@ const shiftPress: Observable<boolean> = fromEvent(window.document, 'keydown').pi
 
 // It is not possible to mutate a part of the actions stream, instead we will create a new one from the smaller parts
 const flow: Flow.For<typeof App> = Flow.composeKnot<typeof App>({
-  // footer and root part did not changed, re-use their flow
+  // footer and root part did not change, re-use their flow
   root: ContentFlow,
   footer: FooterFlow,
   // re-implement header flow
@@ -581,7 +581,7 @@ declare const App: UI.Knot<
 
 // It is not possible to mutate a part of the actions stream, instead we will create a new one from the smaller parts
 const flow: Flow.For<typeof App> = Flow.composeKnot<typeof App>({
-  // header and footer did not changed, re-use their flow
+  // header and footer did not change, re-use their flow
   header: HeaderFlow,
   footer: FooterFlow,
   // re-implement root flow

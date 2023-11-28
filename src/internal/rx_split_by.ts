@@ -24,7 +24,7 @@ import { RefCountSubscription } from 'rxjs/internal/operators/groupBy'
  *   state,
  *   splitBy('kind')
  * )
- * // $ShoudBeEqualTo
+ * // $ShouldBeEqualTo
  * Observable<GroupedObservable<'two', Two> | GroupedObservable<'three', Three>>
  **/
 export function splitBy<Tag extends keyof ADT, ADT extends { readonly [K in Tag]: any }>(

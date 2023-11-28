@@ -2,13 +2,14 @@ module.exports = {
   moduleFileExtensions: ['js', 'ts', 'tsx'],
   testMatch: ['**/*.spec.ts?(x)'],
   transform: {
-    '^.+\\.tsx?$': 'ts-jest'
+    '^.+\\.tsx?$': [
+      'ts-jest',
+      {
+        tsconfig: './tsconfig.json',
+        isolatedModules: true
+      }
+    ]
   },
   preset: 'ts-jest',
-  globals: {
-    'ts-jest': {
-      tsconfig: './tsconfig.json',
-      isolatedModules: true
-    }
-  }
+  testEnvironment: 'jsdom'
 }

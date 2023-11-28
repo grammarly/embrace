@@ -7,14 +7,14 @@ import { pipe } from 'fp-ts/lib/pipeable'
 import { NEVER, Subject } from 'rxjs'
 import * as Rx from 'rxjs/operators'
 import { F } from '@grammarly/focal'
-import { UI } from '../src/ui'
+import { UI } from '../ui'
 import { assertNever } from './utils'
 
 Enzyme.configure({ adapter: new Adapter() })
 
 describe('union of', () => {
   let renderCount = 0 // to ensure that we do not do unnecessary react rerenders
-  jest.spyOn(console, 'error').mockImplementation()
+  jest.spyOn(window.console, 'error').mockImplementation()
 
   beforeEach(() => (renderCount = 0))
 

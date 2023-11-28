@@ -1,7 +1,7 @@
 import { I } from 'ts-toolbelt'
 import { UI } from '../ui'
 import { KindAny } from './foldable'
-import { DropNever, EmptyWhenNever, Id, IsNever, Merge, RecordWithSingleKey } from './utils'
+import { DropNever, Id, IsNever, Merge, RecordWithSingleKey } from './utils'
 
 /**
  * Recursive traverse through @param Part until the end of the @param Path
@@ -51,80 +51,69 @@ export type Recompose<Part extends UIAny, State, Action> = Part extends unknown
 export type ROOT = 'root'
 export const ROOT: ROOT = 'root'
 
-export type _ComposedState<
-  _Node extends UIAny,
-  I extends I.Iteration = I.IterationOf<'8'>
-> = _Node extends infer Node // defer type evaluation, helps with compilation performance
-  ? {
-      readonly node: Node extends UI.Node<infer S, any>
-        ? S // for UINode just return state
-        : never
+export type _ComposedState<Node extends UIAny, I extends I.Iteration = I.IterationOf<'8'>> = {
+  readonly node: Node extends UI.Node<infer S, any>
+    ? S // for UINode just return state
+    : never
 
-      readonly list: Node extends UI.List<infer F, infer K, infer Node> // if we got UIList - return wrapped into HKT by list type and continue iteration
-        ? KindAny<F, _ComposedState<Node, I.Prev<I>>, K>
-        : never
+  readonly list: Node extends UI.List<infer F, infer K, infer Node> // if we got UIList - return wrapped into HKT by list type and continue iteration
+    ? KindAny<F, _ComposedState<Node, I.Prev<I>>, K>
+    : never
 
-      readonly composite: Node extends UI.Composite<infer Child>
-        ? _ComposedState<Child, I.Prev<I>>
-        : never
+  readonly composite: Node extends UI.Composite<infer Child>
+    ? _ComposedState<Child, I.Prev<I>>
+    : never
 
-      readonly knot: Node extends UI.Knot<infer S, any, infer Children>
-        ? DropNever<
-            {
-              readonly [K in keyof Children]: _ComposedState<Children[K], I.Prev<I>> // iterate over each children, and
-            } & { readonly [ROOT]: S } // append own UIKnot state in `ROOT` namespace.
-          > // and ignore all children which state are never
-        : never
+  readonly knot: Node extends UI.Knot<infer S, any, infer Children>
+    ? DropNever<
+        {
+          readonly [K in keyof Children]: _ComposedState<Children[K], I.Prev<I>> // iterate over each children, and
+        } & { readonly [ROOT]: S } // append own UIKnot state in `ROOT` namespace.
+      > // and ignore all children which state are never
+    : never
 
-      readonly union: Node extends UI.Union<infer Tag, infer Members>
-        ? {
-            readonly [K in keyof Members]: Id<
-              { readonly [P in Tag]: K } & // skip state merge operation if member state are never
-                EmptyWhenNever<_ComposedState<Members[K], I.Prev<I>>>
-            >
-          }[keyof Members]
-        : never
+  readonly union: Node extends UI.Union<infer Tag, infer Members>
+    ? {
+        readonly [K in keyof Members]: _ComposedState<Members[K], I.Prev<I>> extends infer R
+          ? [R] extends [never]
+            ? // skip state merge operation if member state are never
+              { readonly [P in Tag]: K }
+            : Id<{ readonly [P in Tag]: K } & R>
+          : never
+      }[keyof Members]
+    : never
 
-      readonly unknown: unknown
-    }[I.Pos<I> extends 0 ? 'unknown' : UIMatcher<Node>]
-  : never
+  readonly unknown: unknown
+}[I.Pos<I> extends 0 ? 'unknown' : UIMatcher<Node>]
 
-export type _ComposedAction<
-  _Node extends UIAny,
-  I extends I.Iteration = I.IterationOf<'7'>
-> = _Node extends infer Node // defer type evaluation, helps with compilation performance
-  ? {
-      readonly node: Node extends UI.Node<any, infer I>
-        ? I // for UINode just return action
-        : never
+export type _ComposedAction<Node extends UIAny, I extends I.Iteration = I.IterationOf<'7'>> = {
+  readonly node: Node extends UI.Node<any, infer I>
+    ? I // for UINode just return action
+    : never
 
-      readonly list: Node extends UI.List<any, infer K, infer Node> // if we got UIList - return wrapped into namespace by list key and continue iteration
-        ? KeyedAction<K, _ComposedAction<Node, I.Prev<I>>> // dummy mapped type required to workaround typescript limitations on recursive types
-        : never
+  readonly list: Node extends UI.List<any, infer K, infer Node> // if we got UIList - return wrapped into namespace by list key and continue iteration
+    ? KeyedAction<K, _ComposedAction<Node, I.Prev<I>>> // dummy mapped type required to workaround typescript limitations on recursive types
+    : never
 
-      readonly composite: Node extends UI.Composite<infer Child>
-        ? _ComposedAction<Child, I.Prev<I>>
-        : never
+  readonly composite: Node extends UI.Composite<infer Child>
+    ? _ComposedAction<Child, I.Prev<I>>
+    : never
 
-      readonly knot: Node extends UI.Knot<any, infer A, infer Children>
-        ?
-            | KeyedAction<ROOT, A> // Append own UIKnot action in `root` namespace, and
-            | {
-                readonly [K in keyof Children]: KeyedAction<
-                  K,
-                  _ComposedAction<Children[K], I.Prev<I>>
-                >
-              }[keyof Children] // form action union from iteration over each children.
-        : never
+  readonly knot: Node extends UI.Knot<any, infer A, infer Children>
+    ?
+        | KeyedAction<ROOT, A> // Append own UIKnot action in `root` namespace, and
+        | {
+            readonly [K in keyof Children]: KeyedAction<K, _ComposedAction<Children[K], I.Prev<I>>>
+          }[keyof Children] // form action union from iteration over each children.
+    : never
 
-      readonly union: Node extends UI.Union<any, infer Members>
-        ? {
-            readonly [K in keyof Members]: KeyedAction<K, _ComposedAction<Members[K], I.Prev<I>>>
-          }[keyof Members]
-        : never
-      readonly unknown: unknown
-    }[I.Pos<I> extends 0 ? 'unknown' : UIMatcher<Node>]
-  : never
+  readonly union: Node extends UI.Union<any, infer Members>
+    ? {
+        readonly [K in keyof Members]: KeyedAction<K, _ComposedAction<Members[K], I.Prev<I>>>
+      }[keyof Members]
+    : never
+  readonly unknown: unknown
+}[I.Pos<I> extends 0 ? 'unknown' : UIMatcher<Node>]
 
 type _Decompose<Part extends UIAny, I extends I.Iteration = I.IterationOf<'10'>> = {
   readonly node: Part extends UI.Node<infer State, infer Action> ? [State, Action] : never
@@ -237,7 +226,7 @@ type _ChangeDescendant<
     }[I.Pos<I> extends Path['length'] ? 'node' : UIMatcher<Part>]
   : never
 
-export type GridWithSingleSlotWithoutStateAndActions<Node extends UIAny> = Node extends UI.Grid<
+export type GridWithSingleSlotWithoutStateAndActions<Node> = Node extends UI.Grid<
   infer S,
   infer A,
   infer Slot
@@ -255,12 +244,13 @@ export type GridWithSingleSlotWithoutStateAndActions<Node extends UIAny> = Node 
  * Any renderable UI Tree element which has own `State` & `Action`
  */
 export type UIAnyWithOwnSA = UINodeAny | UIKnotAny | UIListAny
-export type UIAny = UIAnyWithOwnSA | UIUnionAny | UICompositeAny
+export type UIAny = UIAnyWithOwnSA | UIUnionAny | UICompositeAny | UIGroupAny
 export type UINodeAny = UI.Node<any, any>
-export type UIKnotAny = UI.Knot<any, any, any>
+export type UIKnotAny = UI.Knot<any, any, Record<string, UIAny>>
 export type UICompositeAny = UI.Composite<any>
 export type UIListAny = UI.List<any, any, any>
 export type UIUnionAny = UI.Union<any, any>
+export type UIGroupAny = UI.Group<Record<string, UIAny>>
 
 /**
  * Transforms provided @param Part into string literal.

@@ -11,8 +11,8 @@ import { TestMessage } from 'rxjs/internal/testing/TestMessage'
 import * as Rx from 'rxjs/operators'
 import { TestScheduler } from 'rxjs/testing'
 import { Atom, F } from '@grammarly/focal'
-import { Flow, UI } from '../src/index'
-import { AnimationActions, AnimationState } from '../src/internal/animated'
+import { Flow, UI } from '../index'
+import { AnimationActions, AnimationState } from '../internal/animated'
 import { assertNever } from './utils'
 
 describe('Flow', () => {

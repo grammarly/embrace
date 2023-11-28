@@ -2,6 +2,7 @@
   "compilerOptions": {
     "declaration": true,
     "declarationMap": true,
+    "importHelpers": true,
     "jsx": "react",
     "lib": ["es6", "es2017", "dom", "scripthost"],
     "moduleResolution": "node",
@@ -19,5 +20,6 @@
     "skipLibCheck": true,
     "composite": true,
     "incremental": true
-  }
+  },
+  "exclude": ["src/**/*.spec.ts", "src/**/*.spec.tsx"]
 }

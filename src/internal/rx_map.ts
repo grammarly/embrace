@@ -78,7 +78,7 @@ function getEqByValue<K, A>(valueEq: Eq.Eq<A>): Eq.Eq<Map<K, A>> {
         const entries = a.keys()
         let e: IteratorResult<K>
 
-        while (!(e = entries.next()).done) {
+        while (!((e = entries.next()).done ?? false)) {
           if (!b.has(e.value) || !valueEq.equals(a.get(e.value)!, b.get(e.value)!)) {
             return false
           }

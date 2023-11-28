@@ -1,3 +1,5 @@
+// Must not be empty for swc. See https://github.com/swc-project/swc/issues/7822
+
 import {
   FoldableWithIndex,
   FoldableWithIndex1,

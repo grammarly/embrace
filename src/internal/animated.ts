@@ -47,12 +47,12 @@ export namespace AnimationActions {
     return {
       animation: pipe(
         actions,
-        Rx.filter((a: AnimationFromComposition<Transition>) => a.action.key === 'root'),
+        Rx.filter((a): a is AnimationFromComposition<Transition> => a.action.key === 'root'),
         Rx.map(a => ({ key: a.key, action: a.action.action } as AnimationFromIteration<Transition>))
       ),
       action: pipe(
         actions,
-        Rx.filter((a: ChildrenFromComposition<Action>) => a.action.key === 'children'),
+        Rx.filter((a): a is ChildrenFromComposition<Action> => a.action.key === 'children'),
         Rx.map(a => ({ key: a.key, action: a.action.action } as ChildrenFromIteration<Action>))
       )
     }

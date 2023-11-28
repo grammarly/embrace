@@ -208,7 +208,7 @@ module.exports = {
     ]
   },
   parserOptions: {
-    project: './tsconfig.json',
+    project: './tsconfig.eslint.json',
     tsconfigRootDir: __dirname
   },
   rules: {

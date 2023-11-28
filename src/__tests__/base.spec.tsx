@@ -1,15 +1,17 @@
-import * as React from 'react'
-import * as Enzyme from 'enzyme'
-import * as Adapter from 'enzyme-adapter-react-16'
-import * as A from 'fp-ts/lib/Array'
-import * as R from 'fp-ts/lib/Record'
-import { Endomorphism, flow, identity } from 'fp-ts/lib/function'
-import { pipe } from 'fp-ts/lib/pipeable'
-import { of as rxOf } from 'rxjs'
-import * as Rx from 'rxjs/operators'
-import { F } from '@grammarly/focal'
-import { Flow, UI } from '../src/index'
-import { getMapFoldableWithIndex } from './utils'
+import * as Enzyme from "enzyme";
+import * as Adapter from "enzyme-adapter-react-16";
+import * as A from "fp-ts/lib/Array";
+import { Endomorphism, flow, identity } from "fp-ts/lib/function";
+import { pipe } from "fp-ts/lib/pipeable";
+import * as R from "fp-ts/lib/Record";
+import * as React from "react";
+import { of as rxOf } from "rxjs";
+import * as Rx from "rxjs/operators";
+
+import { F } from "@grammarly/focal";
+
+import { Flow, UI } from "../index";
+import { getMapFoldableWithIndex } from "./utils";
 
 Enzyme.configure({ adapter: new Adapter() })
 
@@ -712,7 +714,7 @@ describe('UI Tree', () => {
     it('from list of knot to list of knot singleton', () => {
       const patchedComp = pipe(
         UI.List.make(R.record, comp12),
-        UI.patch('comp1')(UI.mapAction(x => x + 'new')),
+        UI.patch('comp1')(UI.mapAction<any, any>(x => x + 'new')), // TODO: <any, any> to prevent TS2589
         UI.patch('comp2')(() => UI.Node.empty)
       )
 
@@ -758,7 +760,7 @@ describe('UI Tree', () => {
     it('from knot of list to knot of list', () => {
       const patchedComp = pipe(
         UI.List.make(R.record, comp12),
-        UI.patch('comp1')(UI.mapAction(x => x + 'new'))
+        UI.patch('comp1')(UI.mapAction<any, any>(x => x + 'new')) // TODO: <any, any> to prevent TS2589
       )
 
       const linit = { comp1: init, comp2: init }

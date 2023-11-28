@@ -1,13 +1,15 @@
-import * as React from 'react'
-import * as Enzyme from 'enzyme'
-import * as Adapter from 'enzyme-adapter-react-16'
-import * as O from 'fp-ts/lib/Option'
-import * as TH from 'fp-ts/lib/These'
-import { flow } from 'fp-ts/lib/function'
-import * as Rx from 'rxjs/operators'
-import { F } from '@grammarly/focal'
-import { Flow, UI } from '../src/index'
-import { assertNever } from './utils'
+import * as Enzyme from "enzyme";
+import * as Adapter from "enzyme-adapter-react-16";
+import { flow } from "fp-ts/lib/function";
+import * as O from "fp-ts/lib/Option";
+import * as TH from "fp-ts/lib/These";
+import * as React from "react";
+import * as Rx from "rxjs/operators";
+
+import { F } from "@grammarly/focal";
+
+import { Flow, UI } from "../index";
+import { assertNever } from "./utils";
 
 Enzyme.configure({ adapter: new Adapter() })
 
