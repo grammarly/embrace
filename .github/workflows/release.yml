@@ -13,7 +13,7 @@ jobs:
         id: branch_name
         run: echo ::set-output name=TARBALL::grammarly-embrace-${GITHUB_REF#refs/tags/}.tgz
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - run: yarn install
       - run: yarn build
       - run: yarn test
