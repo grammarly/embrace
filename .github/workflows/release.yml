@@ -25,3 +25,12 @@ jobs:
           file: ./${{ steps.branch_name.outputs.TARBALL }}
           asset_name: ${{ steps.branch_name.outputs.TARBALL }}
           tag: ${{ github.ref }}
+      - name: Set up .npmrc file to publish to NPM
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Publish release to NPM
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
