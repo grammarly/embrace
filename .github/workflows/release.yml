@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Branch name
         id: branch_name
-        run: echo ::set-output name=TARBALL::grammarly-embrace-${GITHUB_REF#refs/tags/}.tgz
+        run: echo "TARBALL=grammarly-embrace-${GITHUB_REF#refs/tags/}.tgz" >> $GITHUB_OUTPUT
       - name: Checkout code
         uses: actions/checkout@v4
       - run: yarn install
